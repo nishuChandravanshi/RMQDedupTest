@@ -7,8 +7,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.concurrent.TimeoutException;
 
 import static com.amqp.basic.queue.CommonConfigs.DELIMITER;
-import static com.amqp.basic.queue.MessageSubscriber.executorService;
-import static com.amqp.basic.queue.MessageSubscriber.set;
+import static com.amqp.basic.queue.MessageSubscriber.*;
 
 
 public class MyDeliveryCallback extends DefaultConsumer {
@@ -44,21 +43,24 @@ public class MyDeliveryCallback extends DefaultConsumer {
 
 
 	private static void dedupMessage (Envelope envelope, byte[] body, Channel channel) throws IOException, TimeoutException, InterruptedException {
-		String message = new String(body, StandardCharsets.UTF_8);
+		String message         = new String(body, StandardCharsets.UTF_8);
+		int    channelHashCode = channel.isOpen() ? channel.hashCode() : -1;
 		System.out.println("channel1 | message " + message + ", delTag " + envelope.getDeliveryTag());
 
-		String[] msgs = message.split(DELIMITER);
-		System.out.println("set " + set.size());
-
-		if (msgs.length > 1 && set.contains(msgs[1])) {
+		String[] msgs          = message.split(DELIMITER);
+		String   msgIdentifier = msgs[1];
+		if ("true".equals(redisService.getKey(msgIdentifier))) {
 			System.out.println("Message Already Processed");
-			channel.basicAck(envelope.getDeliveryTag(), false);
 		} else {
 			//ProcessMsg
 			System.out.println("Processing Received message: " + message);
-			set.add(msgs[1]);
-
+		}
+		if (channel != null && channel.isOpen()) {
+			System.out.println("channel open | ack msg");
 			channel.basicAck(envelope.getDeliveryTag(), false);
+		} else {
+			System.out.println("channel closed | adding msg to reids");
+			redisService.setKeyWithExpiry(msgIdentifier, "true", 300L);
 		}
 	}
 

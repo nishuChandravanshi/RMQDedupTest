@@ -16,8 +16,8 @@ public class MessagePublisher {
 		Channel           channel    = connection.createChannel();
 		channel.queueDeclare(CommonConfigs.DEFAULT_QUEUE, true, false, false, null);
 
-//		publishMessageInRange(channel);
-		publishMessageInLoop(channel);
+		publishMessageInRange(channel);
+//		publishMessageInLoop(channel);
 
 		channel.close();
 		connection.close();
@@ -25,7 +25,7 @@ public class MessagePublisher {
 
 
 	private static void publishMessageInRange (Channel channel) throws IOException {
-		for (int i = 0; i < 1; i++) {
+		for (int i = 0; i < 15; i++) {
 			String uuid    = UUID.randomUUID().toString();
 			String message = "Msg" + i + DELIMITER + uuid;
 //			String message1 = "Msg" + i;
